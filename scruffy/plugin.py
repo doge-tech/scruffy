@@ -6,8 +6,10 @@ Classes for representing and loading plugins.
 """
 import os
 import importlib
+import importlib.util
+import importlib.machinery
 import six
-
+import sys
 
 class PluginRegistry(type):
     """
@@ -56,9 +58,11 @@ class PluginManager(object):
             # if it's a file, load it
             modname, ext = os.path.splitext(filename)
             if os.path.isfile(filepath) and ext == '.py':
-                file, path, descr = importlib.find_module(modname, [directory])
-                if file:
-                    mod = importlib.load_module(modname, file, path, descr)
+                spec = importlib.machinery.PathFinder.find_spec(modname, [directory])
+                if spec:
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    sys.modules[modname] = mod
 
             # if it's a directory, recurse into it
             if os.path.isdir(filepath):
